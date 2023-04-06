@@ -1,10 +1,14 @@
 % Load the image sequence and ground truth data
-data = dlmread('/home/anibalpires4/Desktop/CV/gt.txt');
-path = '/home/anibalpires4/Desktop/CV/View_001/frame_'; 
+data = dlmread('gt.txt');
+path = 'View_001/frame_'; 
 frameIdComp = 4;
 str = ['%s%.' num2str(frameIdComp) 'd.%s'];
 nFrame = 795;
 vid4D = zeros([576 768 3 nFrame]);
+
+alfa = 0.35;
+Bkg = 0;
+
 figure; hold on
 
 for k = 1 : nFrame
@@ -12,8 +16,14 @@ for k = 1 : nFrame
     k
     str1 = sprintf(str,path,k,'jpg');
     img = imread(str1);
-    vid4D(:,:,:,k)=img;
-    imshow(img);
+
+    %vid4D(:,:,:,k)=img;
+    %imshow(img);
+
+    Y = img;
+    Bkg = alfa * Y + (1 - alfa)* Bkg;
+    imshow(Bkg); drawnow;
+    
     hold on;
   
     % Get indices of bounding boxes for the current frame
