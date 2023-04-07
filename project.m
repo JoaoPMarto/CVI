@@ -46,7 +46,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Detector algorithm %%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 % Load the image sequence
 path = 'View_001/frame_'; 
 frameIdComp = 4;
@@ -81,6 +80,15 @@ open(outputVideo);
 % Initialize kernel for morphological operations
 kernel = strel('disk', 5);
 
+% Initialize Kalman filter parameters
+dt = 1;         % time step
+A = [1 dt 0 0; 0 1 0 0; 0 0 1 dt; 0 0 0 1];  % state transition matrix
+C = [1 0 0 0; 0 0 1 0];                     % observation matrix
+Q = eye(4);     % process noise covariance
+R = eye(2);     % measurement noise covariance
+x = zeros(4, 1); % initial state estimate
+P = eye(4);     % initial error covariance
+
 for k = 1 : nFrame
     % Load the current frame
     str1 = sprintf(str,path,k,'jpg');
@@ -95,8 +103,7 @@ for k = 1 : nFrame
     fgMask = abs(img - double(rgb2gray(background))) > 50;
 
     % Apply morphological operations to remove noise and fill gaps
-    fgMask = imclose(fgMask, kernel);
-    fgMask = imfill(fgMask, 'holes');
+    fgMask = bwmorph(fgMask, 'clean');
     
     % Detect connected components in foreground mask
     [labels, numLabels] = bwlabel(fgMask);
@@ -108,27 +115,35 @@ for k = 1 : nFrame
         area = props(i).Area;
         bbox = props(i).BoundingBox;
         aspectRatio = bbox(3) / bbox(4);
-        
+
         % Check if component meets size and shape requirements
         if area >= minArea && area <= maxArea && ...
                 aspectRatio >= minAspect && aspectRatio <= maxAspect
-            % Draw bounding box around pedestrian and save to output video
-            x = bbox(1);
-            y = bbox(2);
-            w = bbox(3);
-            h = bbox(4);           
+            % Initialize Kalman filter for this object
+            z = [bbox(1)+bbox(3)/2; bbox(2)+bbox(4)/2]; % observation
+            x(1:2) = z;    % initialize state estimate with observation
 
-            % Calculate the centroid of the bounding box
-            centroid = [bbox(1)+bbox(3)/2, bbox(2)+bbox(4)/2];
+            % Predict the next state of the Kalman filter
+            x = A * x;
+            P = A * P * A' + Q;
 
-            frame = insertShape(vid4D(:,:,:,k), 'Rectangle', [x y w h], ...
-                    'LineWidth', 2, 'Color', 'green');
-            frame = insertObjectAnnotation(frame, 'rectangle', [x y w h], ...
-                    sprintf('Pedestrian %d', i), 'Color', 'green');
-            writeVideo(outputVideo, frame);
+            % Update the state estimate based on the observation
+            y = z - C * x;
+            S = C * P * C' + R;
+            K = P * C' * inv(S);
+            x = x + K * y;
+            P = (eye(4) - K * C) * P;
+
+            % Draw bounding box and label on the current frame
+            label = sprintf('Pedestrian %d', i);
+            frame = insertObjectAnnotation(frame, 'rectangle', bbox, label);
         end
     end
+    
+    % Write output frame to video file
+    writeVideo(outputVideo, frame);
 end
 
+% Close output video file
 close(outputVideo);
 
