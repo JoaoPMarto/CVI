@@ -50,6 +50,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Detector algorithm %%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Load the image sequence
 path = 'View_001/frame_'; 
 frameIdComp = 4;
@@ -76,10 +77,6 @@ minArea = 300;
 maxArea = 5000;
 minAspect = 0.1;
 maxAspect = 1.0;
-
-% Initialize output video
-outputVideo = VideoWriter('output.avi');
-open(outputVideo);
 
 % Initialize kernel for morphological operations
 kernel = strel('disk', 5);
@@ -144,10 +141,10 @@ for k = 1 : nFrame
         end
     end
     
-    % Write output frame to video file
-    writeVideo(outputVideo, frame);
-end
+    % Display output frame 
+    imshow(frame);
 
-% Close output video file
-close(outputVideo);
+    % Pause for a short duration between frames (optional)
+    %pause(0.001);
+end
 
