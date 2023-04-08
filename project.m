@@ -78,17 +78,8 @@ maxArea = 5000;
 minAspect = 0.1;
 maxAspect = 1.0;
 
-% Initialize kernel for morphological operations
-kernel = strel('disk', 5);
-
-% Initialize Kalman filter parameters
-dt = 1;         % time step
-A = [1 dt 0 0; 0 1 0 0; 0 0 1 dt; 0 0 0 1];  % state transition matrix
-C = [1 0 0 0; 0 0 1 0];                     % observation matrix
-Q = eye(4);     % process noise covariance
-R = eye(2);     % measurement noise covariance
-x = zeros(4, 1); % initial state estimate
-P = eye(4);     % initial error covariance
+prevPositions = [];  % empty matrix for previous positions of the pedestrians
+nFramesToKeep = 200;   % Set the number of frames to keep each pedestrian position on screen
 
 for k = 1 : nFrame
     % Load the current frame
@@ -96,8 +87,8 @@ for k = 1 : nFrame
     img = double(rgb2gray(imread(str1)));
     vid4D(:,:,:,k) = im2uint8(imread(str1)); % Convert to uint8
     frame = imread(str1);
+   
     % Update background model using running average of previous frames
-    
     %bgModel = alpha * double(img) + (1 - alpha) * double(bgModel);
     
     % Subtract background model from current frame
@@ -120,31 +111,29 @@ for k = 1 : nFrame
         % Check if component meets size and shape requirements
         if area >= minArea && area <= maxArea && ...
                 aspectRatio >= minAspect && aspectRatio <= maxAspect
+
             % Initialize Kalman filter for this object
             z = [bbox(1)+bbox(3)/2; bbox(2)+bbox(4)/2]; % observation
             x(1:2) = z;    % initialize state estimate with observation
-
-            % Predict the next state of the Kalman filter
-            x = A * x;
-            P = A * P * A' + Q;
-
-            % Update the state estimate based on the observation
-            y = z - C * x;
-            S = C * P * C' + R;
-            K = P * C' * inv(S);
-            x = x + K * y;
-            P = (eye(4) - K * C) * P;
+            prevPositions = [prevPositions; x(1:2)'];  % Assign that empty matrix for previous pedestrian positions
+            
+            % Remove old positions that are no longer visible
+            if size(prevPositions, 1) > nFramesToKeep
+                prevPositions(1,:) = [];
+            end
 
             % Draw bounding box and label on the current frame
             label = sprintf('Pedestrian %d', i);
             frame = insertObjectAnnotation(frame, 'rectangle', bbox, label);
+            
+            % Plot pedestrian position as black dots
+            frame = insertShape(frame, 'FilledCircle', cat(2, prevPositions(:,1), prevPositions(:,2), ones(size(prevPositions,1),1)*2), 'Color','black', 'LineWidth', 1);
         end
     end
-    
+
     % Display output frame 
     imshow(frame);
-
     % Pause for a short duration between frames (optional)
     %pause(0.001);
-end
 
+end
