@@ -115,7 +115,7 @@ for k = 1 : nFrame
             % Initialize Kalman filter for this object
             z = [bbox(1)+bbox(3)/2; bbox(2)+bbox(4)/2]; % observation
             x(1:2) = z;    % initialize state estimate with observation
-            prevPositions = [prevPositions; x(1:2)'];  % Assign that empty matrix for previous pedestrian positions
+            prevPositions = [prevPositions; x(1:2)];  % Assign that empty matrix for previous pedestrian positions
             
             % Remove old positions that are no longer visible
             if size(prevPositions, 1) > nFramesToKeep
