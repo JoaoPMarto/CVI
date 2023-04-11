@@ -17,9 +17,14 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
     %minAspect = 0.1;
     %maxAspect = 1.0;
     
+    % Initialize map to store pedestrian labels
+    pedLabels = containers.Map('KeyType', 'double', 'ValueType', 'any');
+
     prevPositions = [];  % empty matrix for previous positions of the pedestrians
     %nFramesToKeep = 200;   % Set the number of frames to keep each pedestrian position on screen
-    
+
+
+
     for k = 1 : nFrame
         % print the iteration number
         fprintf('Iteration %d\n', k);
@@ -41,7 +46,10 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
         % Detect connected components in foreground mask
         [labels, numLabels] = bwlabel(fgMask);
         props = regionprops(labels, 'Area', 'BoundingBox');
-        
+
+        % Initialize counter variable for pedestrian IDs
+        pedCounter = 1;
+
         % Filter out small and non-rectangular components
         for i = 1:numLabels
             % Get current component properties
@@ -52,23 +60,38 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
             % Check if component meets size and shape requirements
             if area >= minArea && area <= maxArea && ...
                     aspectRatio >= minAspect && aspectRatio <= maxAspect
-    
+
                 % Initialize Kalman filter for this object
                 z = [bbox(1)+bbox(3)/2; bbox(2)+bbox(4)/2]; % observation
                 x(1:2) = z;    % initialize state estimate with observation
-                prevPositions = [prevPositions; x(1:2)];  % Assign that empty matrix for previous pedestrian positions
-                
+                if isempty(pedLabels)
+                    id = 1;
+                else
+                    id = max(cell2mat(pedLabels.values)) + 1;
+                end
+                prevPositions = [prevPositions; x(1:2) id];  % Assign that empty matrix for previous pedestrian positions
+
                 % Remove old positions that are no longer visible
                 if size(prevPositions, 1) > nFramesToKeep
                     prevPositions(1,:) = [];
                 end
     
+                % Assign a unique ID to this pedestrian
+                pedID = pedCounter;
+                pedCounter = pedCounter + 1;
+
                 % Draw bounding box and label on the current frame
-                label = sprintf('Pedestrian %d', i);
+                label = sprintf('Pedestrian %d', pedID);
                 frame = insertObjectAnnotation(frame, 'rectangle', bbox, label);
                 
                 % Plot pedestrian position as black dots
-                frame = insertShape(frame, 'FilledCircle', cat(2, prevPositions(:,1), prevPositions(:,2), ones(size(prevPositions,1),1)*2), 'Color','black', 'LineWidth', 1);
+                
+                pedLabels(id) = i; % Update the dictionary with the new pedestrian id
+                idx = find(prevPositions(:, end) == id, 1, 'last');
+                if ~isempty(idx)
+                    pos = prevPositions(idx, 1:2);
+                    frame = insertShape(frame, 'FilledCircle', [pos 2], 'Color', 'black', 'LineWidth', 1);
+                end
             end
         end
     
