@@ -11,6 +11,8 @@ frameIdComp = 4;
 str = ['%s%.' num2str(frameIdComp) 'd.%s'];
 nFrame = 100; % 794
 vid4D = zeros([576 768 3 nFrame]);
+
+%%
 figure; hold on
 
 for k = 1 : nFrame
@@ -65,7 +67,7 @@ minArea = 300;
 maxArea = 5000;
 minAspect = 0.1;
 maxAspect = 1.0;
-nFrame = 5; % original: 794
+nFrame = 200; % original: 
 nFramesToKeep = 200; % amount of frames for which we keep the past path taken
 background_image = background_median;
 detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,background_image);

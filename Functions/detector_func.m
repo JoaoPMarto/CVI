@@ -87,11 +87,8 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
                 % Plot pedestrian position as black dots
                 
                 pedLabels(id) = i; % Update the dictionary with the new pedestrian id
-                idx = find(prevPositions(:, end) == id, 1, 'last');
-                if ~isempty(idx)
-                    pos = prevPositions(idx, 1:2);
-                    frame = insertShape(frame, 'FilledCircle', [pos 2], 'Color', 'black', 'LineWidth', 1);
-                end
+                frame = insertShape(frame, 'FilledCircle', cat(2, prevPositions(:,1), prevPositions(:,2), ones(size(prevPositions,1),1)*2), 'Color','black', 'LineWidth', 1);
+                
             end
         end
     
