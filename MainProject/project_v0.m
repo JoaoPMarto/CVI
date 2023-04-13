@@ -63,11 +63,10 @@ nFrames = 30;
 background_median = median_background(str, path,nFrames);
 
 %% applying the detector algorithm
-minArea = 300;
-maxArea = 5000;
+minArea = 400;
+maxArea = 4000;
 minAspect = 0.1;
-maxAspect = 1.0;
-nFrame = 200; % original: 
+maxAspect = 1;nFrame = 200; % original: 
 nFramesToKeep = 200; % amount of frames for which we keep the past path taken
 background_image = background_median;
 detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,background_image);

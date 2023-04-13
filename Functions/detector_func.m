@@ -38,7 +38,7 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
         %bgModel = alpha * double(img) + (1 - alpha) * double(bgModel);
         
         % Subtract background model from current frame
-        fgMask = abs(img - double(rgb2gray(background))) > 50;
+        fgMask = abs(img - double(rgb2gray(background))) > 30;
     
         % Apply morphological operations to remove noise and fill gaps
         fgMask = bwmorph(fgMask, 'clean');
@@ -57,6 +57,9 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
             bbox = props(i).BoundingBox;
             aspectRatio = bbox(3) / bbox(4);
     
+            % Initialize distances variable
+            distances = [];
+
             % Check if component meets size and shape requirements
             if area >= minArea && area <= maxArea && ...
                     aspectRatio >= minAspect && aspectRatio <= maxAspect
@@ -64,11 +67,33 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
                 % Initialize Kalman filter for this object
                 z = [bbox(1)+bbox(3)/2; bbox(2)+bbox(4)/2]; % observation
                 x(1:2) = z;    % initialize state estimate with observation
-                if isempty(pedLabels)
-                    id = 1;
-                else
-                    id = max(cell2mat(pedLabels.values)) + 1;
+                
+                minDistance = [];
+                distanceThreshold = 20; % Set a threshold for the minimum distance between pedestrian positions to consider them as the same pedestrian
+                if ~isempty(prevPositions)
+                    distances = sqrt(sum((prevPositions(:,1:2) - repmat(z', size(prevPositions,1), 1)).^2, 2));
+                    [minDist, minIndex] = min(distances);
+                    
+                    % Check if the closest previous position is within a certain distance
+                    if minDist < distanceThreshold
+                        % Assign the ID of the closest pedestrian
+                        id = prevPositions(minIndex,3);
+                    end
                 end
+
+                if ~isempty(minDistance) && minDistance <= distanceThreshold
+                    % Detection belongs to an existing pedestrian
+                    [~, idx] = min(distances);
+                    id = prevPositions(idx, 3);  % Assign the same ID as the corresponding pedestrian
+                else
+                    % Detection belongs to a new pedestrian
+                    if isempty(pedLabels)
+                        id = 1;
+                    else
+                        id = max(cell2mat(pedLabels.values)) + 1;
+                    end
+                end
+
                 prevPositions = [prevPositions; x(1:2) id];  % Assign that empty matrix for previous pedestrian positions
 
                 % Remove old positions that are no longer visible
@@ -95,7 +120,7 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
         % Display output frame 
         imshow(frame);
         % Pause for a short duration between frames (optional)
-        pause;
+        %pause;
         hold off;
     
     end
