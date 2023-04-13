@@ -54,22 +54,22 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
                 z = [bbox(1)+bbox(3)/2; bbox(2)+bbox(4)/2]; % observation
                 x(1:2) = z;    % initialize state estimate with observation
 
+                pedLabels(pedID) = [bbox(1)+bbox(3)/2, bbox(2)+bbox(4)/2];
                 % Search for existing pedestrian labels whose position is close to the current component
                 bestDist = Inf;
-                bestLabel = 0;
-                a = 1
+                bestLabel = {};
                 for id = keys(pedLabels)
-                    pos = pedLabels(id{1});
-                    dist = norm(x(1:2) - pos(1:2));
+                    pos = [pedLabels(pedID)(1),pedLabels(pedID)(2)];
+                    dist = norm(x(1:2) - pos());
                     if dist < bestDist && dist < 50  % use a threshold to determine whether the position is close enough
                         bestDist = dist;
-                        bestLabel = id{1};
+                        bestLabel = id;
                     end
                 end
 
                 % If an existing label is found, use it; otherwise, assign a new ID
-                if ~isempty(bestLabel) && bestLabel ~= 0
-                    pedID = bestLabel;
+                if ~isempty(bestLabel) && length(bestLabel) == 1 && bestLabel{1} ~= 0
+                    pedID = bestLabel{1};
                 else
                     prevPositions = [prevPositions; x(1:2), pedCounter];  % Assign that empty matrix for previous pedestrian positions
 
@@ -89,7 +89,7 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
                 
                 % Plot pedestrian position as black dots
                 
-                pedLabels(pedID) = z; % Update the dictionary with the new pedestrian id
+                pedLabels(pedID) = i; % Update the dictionary with the new pedestrian id
                 frame = insertShape(frame, 'FilledCircle', cat(2, prevPositions(:,1), prevPositions(:,2), ones(size(prevPositions,1),1)*2), 'Color','black', 'LineWidth', 1);
                 
             end
