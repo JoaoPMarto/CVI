@@ -57,10 +57,10 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
                 % Search for existing pedestrian labels whose position is close to the current component
                 bestDist = Inf;
                 bestLabel = 0;
-                a = 1
+
                 for id = keys(pedLabels)
                     pos = pedLabels(id{1});
-                    dist = norm(x(1:2) - pos(1:2));
+                    dist = norm(x(1:2) - [pos(1),pos(2)]);
                     if dist < bestDist && dist < 50  % use a threshold to determine whether the position is close enough
                         bestDist = dist;
                         bestLabel = id{1};
@@ -68,6 +68,7 @@ function detector_func(minArea,maxArea,minAspect,maxAspect,nFrame,nFramesToKeep,
                 end
 
                 % If an existing label is found, use it; otherwise, assign a new ID
+                bestLabel
                 if ~isempty(bestLabel) && bestLabel ~= 0
                     pedID = bestLabel;
                 else
